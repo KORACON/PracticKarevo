@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет клиента</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>🏨 Гостиница — Кабинет клиента</h1>
+  <div class="user-info">
+    <span id="user-name"></span>
+    <button class="btn-logout" onclick="logout()">Выйти</button>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="showPage('rooms')">Номера</button>
+  <button onclick="showPage('mybookings')">Мои брони</button>
+  <button onclick="showPage('notifications')">Уведомления <span id="notif-count" class="notif-badge" style="display:none"></span></button>
+  <button onclick="showPage('profile')">Профиль</button>
+</div>
+
+<div class="container">
+
+  <!-- НОМЕРА -->
+  <div id="page-rooms" class="page active">
+    <div class="section-header">
+      <h2>Доступные номера</h2>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select id="filter-type" onchange="renderRooms()" style="padding:7px 12px;border-radius:7px;border:1.5px solid #ccc">
+          <option value="">Все типы</option>
+          <option>Стандарт</option>
+          <option>Полулюкс</option>
+          <option>Люкс</option>
+        </select>
+        <select id="filter-status" onchange="renderRooms()" style="padding:7px 12px;border-radius:7px;border:1.5px solid #ccc">
+          <option value="">Все статусы</option>
+          <option value="свободен">Свободные</option>
+        </select>
+      </div>
+    </div>
+    <div id="rooms-grid" class="rooms-grid"></div>
+  </div>
+
+  <!-- МОИ БРОНИ -->
+  <div id="page-mybookings" class="page">
+    <div class="section-header"><h2>Мои бронирования</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Номер</th><th>Тип</th><th>Заезд</th><th>Выезд</th>
+            <th>Ночей</th><th>Сумма</th><th>Статус</th><th>Действие</th>
+          </tr>
+        </thead>
+        <tbody id="my-bookings-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- УВЕДОМЛЕНИЯ -->
+  <div id="page-notifications" class="page">
+    <div class="section-header"><h2>Уведомления</h2></div>
+    <div id="notif-list"></div>
+  </div>
+
+  <!-- ПРОФИЛЬ -->
+  <div id="page-profile" class="page">
+    <div class="section-header"><h2>Мой профиль</h2></div>
+    <div class="info-card" id="profile-info"></div>
+  </div>
+
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО БРОНИРОВАНИЯ -->
+<div class="modal-overlay" id="book-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>Забронировать номер</h2>
+    <div id="book-room-info" style="margin-bottom:16px;padding:12px;background:#f7faff;border-radius:8px"></div>
+    <div class="form-group">
+      <label>Дата заезда</label>
+      <input type="date" id="book-checkin" />
+    </div>
+    <div class="form-group">
+      <label>Дата выезда</label>
+      <input type="date" id="book-checkout" />
+    </div>
+    <div id="book-calc" style="margin-bottom:14px;font-weight:bold;color:#27ae60"></div>
+    <div id="book-error" class="error-msg"></div>
+    <button class="btn btn-success" style="width:100%;margin-top:8px" onclick="confirmBooking()">Подать заявку</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="db.js"></script>
+<script>
+  let currentUser = DB.getSession();
+  let selectedRoom = null;
+
+  if (!currentUser || currentUser.role !== 'client') {
+    location.href = 'index.html';
+  }
+
+  document.getElementById('user-name').textContent = currentUser.fio;
+
+  function logout() { DB.clearSession(); location.href = 'index.html'; }
+
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if (name === 'mybookings') renderMyBookings();
+    if (name === 'notifications') renderNotifications();
+    if (name === 'profile') renderProfile();
+    if (name === 'rooms') renderRooms();
+  }
+
+  function renderRooms() {
+    const typeFilter = document.getElementById('filter-type').value;
+    const statusFilter = document.getElementById('filter-status').value;
+    let rooms = DB.getRooms();
+    if (typeFilter) rooms = rooms.filter(r => r.type === typeFilter);
+    if (statusFilter) rooms = rooms.filter(r => r.status === statusFilter);
+
+    const grid = document.getElementById('rooms-grid');
+    if (rooms.length === 0) { grid.innerHTML = '<p style="color:#888">Номера не найдены</p>'; return; }
+
+    grid.innerHTML = rooms.map(r => `
+      <div class="room-card">
+        <h3>Номер ${r.number}</h3>
+        <div class="type">${r.type}</div>
+        <span class="badge ${r.status === 'свободен' ? 'free' : 'busy'}">${r.status}</span>
+        <div class="price">${r.price.toLocaleString()} ₽/ночь</div>
+        <div class="desc">${r.description || ''}</div>
+        ${r.status === 'свободен'
+          ? `<button class="btn btn-primary btn-sm" onclick="openBookModal(${r.id})">Забронировать</button>`
+          : `<button class="btn btn-sm" disabled style="background:#ccc;color:#666;cursor:not-allowed">Занят</button>`
+        }
+      </div>
+    `).join('');
+  }
+
+  function openBookModal(roomId) {
+    selectedRoom = DB.getRooms().find(r => r.id === roomId);
+    document.getElementById('book-room-info').innerHTML =
+      `<b>Номер ${selectedRoom.number}</b> — ${selectedRoom.type}<br>
+       <span style="color:#27ae60;font-weight:bold">${selectedRoom.price.toLocaleString()} ₽/ночь</span>`;
+    document.getElementById('book-checkin').value = '';
+    document.getElementById('book-checkout').value = '';
+    document.getElementById('book-calc').textContent = '';
+    document.getElementById('book-error').textContent = '';
+
+    // Минимальная дата — сегодня
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('book-checkin').min = today;
+    document.getElementById('book-checkout').min = today;
+
+    document.getElementById('book-modal').classList.add('open');
+  }
+
+  document.getElementById('book-checkin').addEventListener('change', calcPrice);
+  document.getElementById('book-checkout').addEventListener('change', calcPrice);
+
+  function calcPrice() {
+    const ci = document.getElementById('book-checkin').value;
+    const co = document.getElementById('book-checkout').value;
+    if (ci && co && selectedRoom) {
+      const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
+      if (nights > 0) {
+        const total = nights * selectedRoom.price;
+        document.getElementById('book-calc').textContent =
+          `${nights} ночей × ${selectedRoom.price.toLocaleString()} ₽ = ${total.toLocaleString()} ₽`;
+      } else {
+        document.getElementById('book-calc').textContent = '';
+      }
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('book-modal').classList.remove('open');
+    selectedRoom = null;
+  }
+
+  function confirmBooking() {
+    const ci = document.getElementById('book-checkin').value;
+    const co = document.getElementById('book-checkout').value;
+    const err = document.getElementById('book-error');
+
+    if (!ci || !co) { err.textContent = 'Выберите даты'; return; }
+    const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
+    if (nights <= 0) { err.textContent = 'Дата выезда должна быть позже заезда'; return; }
+
+    const total = nights * selectedRoom.price;
+    DB.addBooking({
+      userId: currentUser.id,
+      roomId: selectedRoom.id,
+      roomNumber: selectedRoom.number,
+      roomType: selectedRoom.type,
+      checkin: ci,
+      checkout: co,
+      nights,
+      total
+    });
+
+    DB.addNotification(currentUser.id, `Заявка на бронирование номера ${selectedRoom.number} подана. Ожидайте подтверждения.`);
+    closeModal();
+    showToast('Заявка отправлена! Ожидайте подтверждения.');
+    updateNotifBadge();
+  }
+
+  function renderMyBookings() {
+    const bookings = DB.getBookings().filter(b => b.userId === currentUser.id);
+    const tbody = document.getElementById('my-bookings-body');
+    if (bookings.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888">Бронирований нет</td></tr>';
+      return;
+    }
+    tbody.innerHTML = bookings.reverse().map(b => {
+      const statusColor = { 'ожидает': '#856404', 'подтверждено': '#155724', 'отменено': '#721c24', 'отклонено': '#721c24' };
+      const canCancel = b.status === 'ожидает' || b.status === 'подтверждено';
+      return `<tr>
+        <td>${b.roomNumber}</td>
+        <td>${b.roomType}</td>
+        <td>${b.checkin}</td>
+        <td>${b.checkout}</td>
+        <td>${b.nights}</td>
+        <td>${b.total.toLocaleString()} ₽</td>
+        <td><span class="badge" style="background:${statusColor[b.status] ? '#fff3cd' : '#f8d7da'};color:${statusColor[b.status] || '#721c24'}">${b.status}</span></td>
+        <td>${canCancel ? `<button class="btn btn-danger btn-sm" onclick="cancelMyBooking(${b.id})">Отменить</button>` : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function cancelMyBooking(id) {
+    if (!confirm('Отменить бронирование?')) return;
+    DB.cancelBooking(id);
+    DB.addNotification(currentUser.id, 'Ваше бронирование отменено.');
+    renderMyBookings();
+    updateNotifBadge();
+    showToast('Бронирование отменено');
+  }
+
+  function renderNotifications() {
+    const notifs = DB.getNotifications(currentUser.id);
+    const list = document.getElementById('notif-list');
+    if (notifs.length === 0) { list.innerHTML = '<p style="color:#888">Уведомлений нет</p>'; return; }
+    list.innerHTML = notifs.reverse().map(n => `
+      <div class="notif-item ${n.read ? '' : 'unread'}">
+        <div>${n.text}</div>
+        <div class="notif-date">${new Date(n.date).toLocaleString('ru')}</div>
+      </div>
+    `).join('');
+    DB.markRead(currentUser.id);
+    updateNotifBadge();
+  }
+
+  function updateNotifBadge() {
+    const unread = DB.getNotifications(currentUser.id).filter(n => !n.read).length;
+    const badge = document.getElementById('notif-count');
+    if (unread > 0) { badge.style.display = 'inline-flex'; badge.textContent = unread; }
+    else { badge.style.display = 'none'; }
+  }
+
+  function renderProfile() {
+    document.getElementById('profile-info').innerHTML = `
+      <p><strong>ФИО:</strong> ${currentUser.fio}</p>
+      <p><strong>Email:</strong> ${currentUser.email}</p>
+      <p><strong>Телефон:</strong> ${currentUser.phone || '—'}</p>
+      <p><strong>Роль:</strong> Клиент</p>
+    `;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // Инициализация
+  renderRooms();
+  updateNotifBadge();
+
+  // Обновление данных при фокусе на вкладке
+  window.addEventListener('focus', () => {
+    renderRooms();
+    updateNotifBadge();
+  });
+</script>
+</body>
+</html>
