@@ -23,6 +23,19 @@
     <button onclick="showPage('clients', this)">Клиенты</button>
   </nav>
   <div class="user-info">
+    <div class="notif-btn-wrap">
+      <button class="notif-icon-btn" onclick="toggleNotifPanel()" title="Уведомления">
+        <img src="Yved.png" alt="Уведомления" class="notif-icon-img" />
+        <span id="admin-notif-count" class="notif-badge" style="display:none"></span>
+      </button>
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-panel-header">
+          <span>Уведомления</span>
+          <button class="notif-panel-close" onclick="toggleNotifPanel()">×</button>
+        </div>
+        <div id="admin-notif-list"></div>
+      </div>
+    </div>
     <span id="user-name"></span>
     <button class="btn-logout" onclick="logout()">Выйти</button>
   </div>
@@ -165,6 +178,7 @@
     document.getElementById('stat-clients').textContent = clients.length;
 
     updateBookingsBadge();
+    updateAdminNotifBadge();
 
     const recent = bookings.slice(-5).reverse();
     document.getElementById('recent-bookings').innerHTML = recent.length === 0
@@ -302,6 +316,13 @@
   function rejectBooking(id) {
     const booking = DB.getBookings().find(b => b.id === id);
     DB.updateBooking(id, { status: 'отклонено' });
+    // Освобождаем номер если нет других активных броней
+    const hasActive = DB.getBookings().some(b =>
+      b.id !== id &&
+      b.roomId === booking.roomId &&
+      (b.status === 'ожидает' || b.status === 'подтверждено')
+    );
+    if (!hasActive) DB.updateRoom(booking.roomId, { status: 'свободен' });
     DB.addNotification(booking.userId, `Ваша заявка на номер ${booking.roomNumber} отклонена.`);
     renderBookings();
     updateBookingsBadge();
@@ -324,6 +345,44 @@
     }).join('');
   }
 
+  function toggleNotifPanel() {
+    const panel = document.getElementById('notif-panel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) renderAdminNotifications();
+  }
+
+  function renderAdminNotifications() {
+    const notifs = DB.getNotifications(currentUser.id);
+    const list = document.getElementById('admin-notif-list');
+    if (notifs.length === 0) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔔</div><p>Уведомлений нет</p></div>';
+    } else {
+      list.innerHTML = notifs.slice().reverse().map(n => `
+        <div class="notif-item ${n.read ? '' : 'unread'}">
+          <div class="notif-text">${n.text}</div>
+          <div class="notif-date">${new Date(n.date).toLocaleString('ru')}</div>
+        </div>
+      `).join('');
+      DB.markRead(currentUser.id);
+      updateAdminNotifBadge();
+    }
+  }
+
+  function updateAdminNotifBadge() {
+    const unread = DB.getNotifications(currentUser.id).filter(n => !n.read).length;
+    const badge = document.getElementById('admin-notif-count');
+    if (unread > 0) { badge.style.display = 'inline-flex'; badge.textContent = unread; }
+    else { badge.style.display = 'none'; }
+  }
+
+  // Закрытие панели при клике вне
+  document.addEventListener('click', function(e) {
+    const wrap = document.querySelector('.notif-btn-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('notif-panel').classList.remove('open');
+    }
+  });
+
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -333,10 +392,11 @@
 
   // Инициализация
   renderDashboard();
+  updateAdminNotifBadge();
 
   // Обновление при фокусе
   window.addEventListener('focus', () => {
-    updateBookingsBadge();
+    updateAdminNotifBadge();
     if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
     if (document.getElementById('page-bookings').classList.contains('active')) renderBookings();
   });

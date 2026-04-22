@@ -18,10 +18,22 @@
   </a>
   <nav class="header-nav">
     <button class="active" onclick="showPage('rooms', this)">Номера</button>
-    <button onclick="showPage('notifications', this)">Уведомления <span id="notif-count" class="notif-badge" style="display:none"></span></button>
     <button onclick="showPage('profile', this)">Профиль</button>
   </nav>
   <div class="user-info">
+    <div class="notif-btn-wrap">
+      <button class="notif-icon-btn" onclick="toggleNotifPanel()" title="Уведомления">
+        <img src="Yved.png" alt="Уведомления" class="notif-icon-img" />
+        <span id="notif-count" class="notif-badge" style="display:none"></span>
+      </button>
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-panel-header">
+          <span>Уведомления</span>
+          <button class="notif-panel-close" onclick="toggleNotifPanel()">×</button>
+        </div>
+        <div id="notif-list"></div>
+      </div>
+    </div>
     <span id="user-name"></span>
     <button class="btn-logout" onclick="logout()">Выйти</button>
   </div>
@@ -51,12 +63,6 @@
 
   <!-- МОИ БРОНИ (скрытая страница, теперь внутри профиля) -->
   <div id="page-mybookings" class="page" style="display:none"></div>
-
-  <!-- УВЕДОМЛЕНИЯ -->
-  <div id="page-notifications" class="page">
-    <div class="section-header"><h2>Уведомления</h2></div>
-    <div id="notif-list"></div>
-  </div>
 
   <!-- ПРОФИЛЬ -->
   <div id="page-profile" class="page">
@@ -121,10 +127,27 @@
     document.querySelectorAll('.header-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
     if (btn) btn.classList.add('active');
-    if (name === 'notifications') renderNotifications();
     if (name === 'profile') { renderProfile(); renderMyBookings(); }
     if (name === 'rooms') renderRooms();
+    // закрываем панель уведомлений при смене страницы
+    document.getElementById('notif-panel').classList.remove('open');
   }
+
+  function toggleNotifPanel() {
+    const panel = document.getElementById('notif-panel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+      renderNotifications();
+    }
+  }
+
+  // Закрытие панели при клике вне её
+  document.addEventListener('click', function(e) {
+    const wrap = document.querySelector('.notif-btn-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('notif-panel').classList.remove('open');
+    }
+  });
 
   function renderRooms() {
     const typeFilter = document.getElementById('filter-type').value;
@@ -252,9 +275,15 @@
 
   function cancelMyBooking(id) {
     if (!confirm('Отменить бронирование?')) return;
+    const booking = DB.getBookings().find(b => b.id === id);
     DB.cancelBooking(id);
     DB.addNotification(currentUser.id, 'Ваше бронирование отменено.');
+    // Уведомление всем админам
+    DB.getUsers().filter(u => u.role === 'admin').forEach(admin => {
+      DB.addNotification(admin.id, `Клиент ${currentUser.fio} отменил бронь номера ${booking.roomNumber} (заезд: ${booking.checkin}).`);
+    });
     renderMyBookings();
+    renderRooms(); // обновляем список номеров — номер снова свободен
     updateNotifBadge();
     showToast('Бронирование отменено');
   }

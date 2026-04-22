@@ -61,7 +61,17 @@ const DB = {
     this.saveBookings(bookings);
   },
   cancelBooking(id) {
+    const booking = this.getBookings().find(b => b.id === id);
     this.updateBooking(id, { status: 'отменено' });
+    // Освобождаем номер только если не осталось активных броней на него
+    if (booking) {
+      const hasActive = this.getBookings().some(b =>
+        b.id !== id &&
+        b.roomId === booking.roomId &&
+        (b.status === 'ожидает' || b.status === 'подтверждено')
+      );
+      if (!hasActive) this.updateRoom(booking.roomId, { status: 'свободен' });
+    }
   },
 
   // --- Уведомления ---
