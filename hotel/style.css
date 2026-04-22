@@ -61,6 +61,12 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.header-logo {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
 .btn-logout {
   background: var(--danger);
   color: #fff;
@@ -71,7 +77,7 @@ body {
   font-size: 0.85em;
   white-space: nowrap;
   transition: background 0.2s;
-}
+}}
 .btn-logout:hover { background: #c0392b; }
 
 /* ===== НАВИГАЦИЯ ===== */
@@ -504,6 +510,7 @@ tr:hover td { background: #f7faff; }
   html { font-size: 15px; }
 
   .header { padding: 10px 12px; }
+  .header-logo { height: 30px; }
   .header h1 { font-size: 0.88em; }
   .header .user-info span { max-width: 100px; }
 
