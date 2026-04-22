@@ -45,7 +45,8 @@
       </div>
       <div class="form-group">
         <label>Телефон</label>
-        <input type="tel" id="reg-phone" placeholder="+7 900 000-00-00" />
+        <input type="tel" id="reg-phone" placeholder="79001234567" inputmode="numeric" maxlength="15" />
+        <small style="color:#888;font-size:0.78em">Только цифры, например: 79001234567</small>
       </div>
       <div class="form-group">
         <label>Email</label>
@@ -97,6 +98,8 @@
     const msg = document.getElementById('reg-msg');
 
     if (!fio || !email || !pass) { msg.textContent = 'Заполните все поля'; msg.className = 'error-msg'; return; }
+    if (phone && !/^\d+$/.test(phone)) { msg.textContent = 'Телефон должен содержать только цифры'; msg.className = 'error-msg'; return; }
+    if (phone && (phone.length < 10 || phone.length > 15)) { msg.textContent = 'Телефон: от 10 до 15 цифр'; msg.className = 'error-msg'; return; }
     if (pass.length < 6) { msg.textContent = 'Пароль минимум 6 символов'; msg.className = 'error-msg'; return; }
 
     const user = DB.registerUser({ fio, phone, email, password: pass });
@@ -106,6 +109,11 @@
     msg.className = 'success-msg';
     setTimeout(() => switchTab('login'), 1500);
   }
+
+  // Разрешаем только цифры в поле телефона
+  document.getElementById('reg-phone').addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '');
+  });
 
   // Enter для входа
   document.addEventListener('keydown', e => {
