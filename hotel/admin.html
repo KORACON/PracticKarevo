@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Панель администратора</title>
+  <title>TemoHotel — Администратор</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>🏨 Гостиница — Панель администратора</h1>
+  <h1><span class="logo-icon">🏨</span>TemoHotel — Администратор</h1>
   <div class="user-info">
     <span id="user-name"></span>
     <button class="btn-logout" onclick="logout()">Выйти</button>
@@ -183,10 +183,10 @@
       <td>${r.price.toLocaleString()} ₽</td>
       <td><span class="badge ${r.status === 'свободен' ? 'free' : 'busy'}">${r.status}</span></td>
       <td>${r.description || '—'}</td>
-      <td>
+      <td><div class="td-actions">
         <button class="btn btn-warning btn-sm" onclick="editRoom(${r.id})">Изменить</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRoom(${r.id})">Удалить</button>
-      </td>
+      </div></td>
     </tr>`).join('');
   }
 
@@ -265,12 +265,12 @@
         <td>${b.checkout}</td>
         <td>${b.total.toLocaleString()} ₽</td>
         <td><span class="badge ${b.status === 'подтверждено' ? 'free' : b.status === 'отменено' || b.status === 'отклонено' ? 'busy' : 'pending'}">${b.status}</span></td>
-        <td>
+        <td><div class="td-actions">
           ${canApprove ? `
-            <button class="btn btn-success btn-sm" onclick="approveBooking(${b.id})">Подтвердить</button>
-            <button class="btn btn-danger btn-sm" onclick="rejectBooking(${b.id})">Отклонить</button>
+            <button class="btn btn-success btn-sm" onclick="approveBooking(${b.id})">✓ Подтвердить</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectBooking(${b.id})">✗ Отклонить</button>
           ` : '—'}
-        </td>
+        </div></td>
       </tr>`;
     }).join('');
   }

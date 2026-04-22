@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Кабинет клиента</title>
+  <title>TemoHotel — Кабинет клиента</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>🏨 Гостиница — Кабинет клиента</h1>
+  <h1><span class="logo-icon">🏨</span>TemoHotel — Кабинет клиента</h1>
   <div class="user-info">
     <span id="user-name"></span>
     <button class="btn-logout" onclick="logout()">Выйти</button>
@@ -29,7 +29,7 @@
   <div id="page-rooms" class="page active">
     <div class="section-header">
       <h2>Доступные номера</h2>
-      <div style="display:flex;gap:10px;align-items:center">
+      <div style="display:flex;gap:10px;align-items:center" class="filter-bar">
         <select id="filter-type" onchange="renderRooms()" style="padding:7px 12px;border-radius:7px;border:1.5px solid #ccc">
           <option value="">Все типы</option>
           <option>Стандарт</option>
@@ -89,7 +89,7 @@
       <label>Дата выезда</label>
       <input type="date" id="book-checkout" />
     </div>
-    <div id="book-calc" style="margin-bottom:14px;font-weight:bold;color:#27ae60"></div>
+    <div id="book-calc" class="price-calc" style="display:none"></div>
     <div id="book-error" class="error-msg"></div>
     <button class="btn btn-success" style="width:100%;margin-top:8px" onclick="confirmBooking()">Подать заявку</button>
   </div>
@@ -139,8 +139,8 @@
         <div class="price">${r.price.toLocaleString()} ₽/ночь</div>
         <div class="desc">${r.description || ''}</div>
         ${r.status === 'свободен'
-          ? `<button class="btn btn-primary btn-sm" onclick="openBookModal(${r.id})">Забронировать</button>`
-          : `<button class="btn btn-sm" disabled style="background:#ccc;color:#666;cursor:not-allowed">Занят</button>`
+          ? `<div class="card-footer"><button class="btn btn-primary btn-sm" onclick="openBookModal(${r.id})">Забронировать</button></div>`
+          : `<div class="card-footer"><button class="btn btn-sm" disabled>Занят</button></div>`
         }
       </div>
     `).join('');
@@ -174,10 +174,13 @@
       const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
       if (nights > 0) {
         const total = nights * selectedRoom.price;
-        document.getElementById('book-calc').textContent =
-          `${nights} ночей × ${selectedRoom.price.toLocaleString()} ₽ = ${total.toLocaleString()} ₽`;
+        const el = document.getElementById('book-calc');
+        el.textContent = `${nights} ночей × ${selectedRoom.price.toLocaleString()} ₽ = ${total.toLocaleString()} ₽`;
+        el.style.display = 'block';
       } else {
-        document.getElementById('book-calc').textContent = '';
+        const el = document.getElementById('book-calc');
+        el.textContent = '';
+        el.style.display = 'none';
       }
     }
   }
@@ -218,7 +221,7 @@
     const bookings = DB.getBookings().filter(b => b.userId === currentUser.id);
     const tbody = document.getElementById('my-bookings-body');
     if (bookings.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888">Бронирований нет</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📋</div><p>Бронирований нет</p></div></td></tr>';
       return;
     }
     tbody.innerHTML = bookings.reverse().map(b => {
@@ -249,10 +252,13 @@
   function renderNotifications() {
     const notifs = DB.getNotifications(currentUser.id);
     const list = document.getElementById('notif-list');
-    if (notifs.length === 0) { list.innerHTML = '<p style="color:#888">Уведомлений нет</p>'; return; }
+    if (notifs.length === 0) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔔</div><p>Уведомлений нет</p></div>';
+      return;
+    }
     list.innerHTML = notifs.reverse().map(n => `
       <div class="notif-item ${n.read ? '' : 'unread'}">
-        <div>${n.text}</div>
+        <div class="notif-text">${n.text}</div>
         <div class="notif-date">${new Date(n.date).toLocaleString('ru')}</div>
       </div>
     `).join('');
