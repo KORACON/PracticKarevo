@@ -9,18 +9,23 @@
 <body>
 
 <div class="header">
-  <img src="logo.png" alt="TemoHotel" class="header-logo" />
+  <a class="header-brand" onclick="showPage('dashboard', document.querySelector('.header-nav button'))">
+    <img src="logo.png" alt="TemoHotel logo" class="header-logo" />
+    <div class="header-brand-text">
+      <span class="brand-temo">TEMO</span>
+      <span class="brand-hotel">HOTEL</span>
+    </div>
+  </a>
+  <nav class="header-nav">
+    <button class="active" onclick="showPage('dashboard', this)">Обзор</button>
+    <button onclick="showPage('rooms', this)">Номера</button>
+    <button onclick="showPage('bookings', this)">Заявки на бронирование <span id="bookings-count" class="notif-badge" style="display:none"></span></button>
+    <button onclick="showPage('clients', this)">Клиенты</button>
+  </nav>
   <div class="user-info">
     <span id="user-name"></span>
     <button class="btn-logout" onclick="logout()">Выйти</button>
   </div>
-</div>
-
-<div class="nav">
-  <button class="active" onclick="showPage('dashboard')">Обзор</button>
-  <button onclick="showPage('rooms')">Номера</button>
-  <button onclick="showPage('bookings')">Заявки на бронирование</button>
-  <button onclick="showPage('clients')">Клиенты</button>
 </div>
 
 <div class="container">
@@ -138,11 +143,11 @@
 
   function logout() { DB.clearSession(); location.href = 'index.html'; }
 
-  function showPage(name) {
+  function showPage(name, btn) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.header-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    event.target.classList.add('active');
+    if (btn) btn.classList.add('active');
     if (name === 'dashboard') renderDashboard();
     if (name === 'rooms') renderRooms();
     if (name === 'bookings') renderBookings();
@@ -158,6 +163,8 @@
     document.getElementById('stat-free').textContent = rooms.filter(r => r.status === 'свободен').length;
     document.getElementById('stat-bookings').textContent = bookings.filter(b => b.status === 'ожидает').length;
     document.getElementById('stat-clients').textContent = clients.length;
+
+    updateBookingsBadge();
 
     const recent = bookings.slice(-5).reverse();
     document.getElementById('recent-bookings').innerHTML = recent.length === 0
@@ -275,12 +282,20 @@
     }).join('');
   }
 
+  function updateBookingsBadge() {
+    const pending = DB.getBookings().filter(b => b.status === 'ожидает').length;
+    const badge = document.getElementById('bookings-count');
+    if (pending > 0) { badge.style.display = 'inline-flex'; badge.textContent = pending; }
+    else { badge.style.display = 'none'; }
+  }
+
   function approveBooking(id) {
     const booking = DB.getBookings().find(b => b.id === id);
     DB.updateBooking(id, { status: 'подтверждено' });
     DB.updateRoom(booking.roomId, { status: 'занят' });
     DB.addNotification(booking.userId, `Ваша заявка на номер ${booking.roomNumber} подтверждена!`);
     renderBookings();
+    updateBookingsBadge();
     showToast('Заявка подтверждена');
   }
 
@@ -289,6 +304,7 @@
     DB.updateBooking(id, { status: 'отклонено' });
     DB.addNotification(booking.userId, `Ваша заявка на номер ${booking.roomNumber} отклонена.`);
     renderBookings();
+    updateBookingsBadge();
     showToast('Заявка отклонена');
   }
 
@@ -320,6 +336,7 @@
 
   // Обновление при фокусе
   window.addEventListener('focus', () => {
+    updateBookingsBadge();
     if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
     if (document.getElementById('page-bookings').classList.contains('active')) renderBookings();
   });

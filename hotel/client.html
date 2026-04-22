@@ -9,17 +9,22 @@
 <body>
 
 <div class="header">
-  <img src="logo.png" alt="TemoHotel" class="header-logo" />
+  <a class="header-brand" onclick="showPage('rooms', document.querySelector('.header-nav button'))">
+    <img src="logo.png" alt="TemoHotel logo" class="header-logo" />
+    <div class="header-brand-text">
+      <span class="brand-temo">TEMO</span>
+      <span class="brand-hotel">HOTEL</span>
+    </div>
+  </a>
+  <nav class="header-nav">
+    <button class="active" onclick="showPage('rooms', this)">Номера</button>
+    <button onclick="showPage('notifications', this)">Уведомления <span id="notif-count" class="notif-badge" style="display:none"></span></button>
+    <button onclick="showPage('profile', this)">Профиль</button>
+  </nav>
   <div class="user-info">
     <span id="user-name"></span>
     <button class="btn-logout" onclick="logout()">Выйти</button>
   </div>
-</div>
-
-<div class="nav">
-  <button class="active" onclick="showPage('rooms')">Номера</button>
-  <button onclick="showPage('notifications')">Уведомления <span id="notif-count" class="notif-badge" style="display:none"></span></button>
-  <button onclick="showPage('profile')">Профиль</button>
 </div>
 
 <div class="container">
@@ -111,11 +116,11 @@
 
   function logout() { DB.clearSession(); location.href = 'index.html'; }
 
-  function showPage(name) {
+  function showPage(name, btn) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.header-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    event.target.classList.add('active');
+    if (btn) btn.classList.add('active');
     if (name === 'notifications') renderNotifications();
     if (name === 'profile') { renderProfile(); renderMyBookings(); }
     if (name === 'rooms') renderRooms();

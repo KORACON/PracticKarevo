@@ -30,7 +30,7 @@ body {
 .header {
   background: var(--primary);
   color: #fff;
-  padding: 12px 20px;
+  padding: 8px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -61,11 +61,46 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+.header-brand:hover { opacity: 0.85; }
 .header-logo {
-  height: 42px;
+  height: 90px;
   width: auto;
   object-fit: contain;
   display: block;
+}
+.header-logo-text {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+.header-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  gap: 1px;
+}
+.brand-temo {
+  font-size: clamp(0.9em, 2vw, 1.3em);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 3px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.brand-hotel {
+  font-size: clamp(0.6em, 1.3vw, 0.88em);
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 5px;
 }
 .btn-logout {
   background: var(--danger);
@@ -77,35 +112,32 @@ body {
   font-size: 0.85em;
   white-space: nowrap;
   transition: background 0.2s;
-}}
+}
 .btn-logout:hover { background: #c0392b; }
 
-/* ===== НАВИГАЦИЯ ===== */
-.nav {
-  background: var(--primary-light);
+/* ===== НАВИГАЦИЯ В ШАПКЕ ===== */
+.header-nav {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 2px;
-  padding: 0 12px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  justify-content: center;
+  flex-wrap: wrap;
 }
-.nav::-webkit-scrollbar { height: 3px; }
-.nav::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
-.nav button {
+.header-nav button {
   background: none;
   border: none;
-  color: #a0c4ff;
-  padding: 11px 16px;
+  color: rgba(255,255,255,0.7);
+  padding: 8px 16px;
   cursor: pointer;
-  font-size: clamp(0.78em, 2vw, 0.92em);
+  font-size: clamp(0.8em, 1.8vw, 0.95em);
   border-bottom: 3px solid transparent;
+  border-radius: 4px 4px 0 0;
   transition: all 0.2s;
   white-space: nowrap;
-  flex-shrink: 0;
 }
-.nav button:hover { color: #fff; }
-.nav button.active { color: #fff; border-bottom-color: var(--accent); }
+.header-nav button:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.header-nav button.active { color: #fff; border-bottom-color: var(--accent); }
 
 /* ===== КОНТЕНТ ===== */
 .container {
@@ -499,8 +531,9 @@ tr:hover td { background: #f7faff; }
 
   th, td { padding: 9px 10px; font-size: 0.82em; }
 
-  .header { padding: 10px 14px; }
-  .header h1 { font-size: 0.95em; }
+  .header { padding: 8px 14px; flex-wrap: wrap; }
+  .header-nav { order: 3; width: 100%; justify-content: flex-start; gap: 0; overflow-x: auto; flex-wrap: nowrap; }
+  .header-nav button { padding: 8px 12px; font-size: 0.8em; flex-shrink: 0; }
 
   .nav button { padding: 10px 12px; font-size: 0.8em; }
 }
@@ -509,8 +542,12 @@ tr:hover td { background: #f7faff; }
 @media (max-width: 480px) {
   html { font-size: 15px; }
 
-  .header { padding: 10px 12px; }
-  .header-logo { height: 30px; }
+  .header { padding: 8px 10px; }
+  .header-logo { height: 60px; }
+  .header-logo-text { height: 32px; }
+  .header-nav button { padding: 7px 9px; font-size: 0.76em; }
+  .brand-temo { font-size: 1.2em; letter-spacing: 2px; }
+  .brand-hotel { font-size: 0.85em; letter-spacing: 3px; }
   .header h1 { font-size: 0.88em; }
   .header .user-info span { max-width: 100px; }
 
